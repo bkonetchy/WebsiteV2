@@ -18,7 +18,7 @@ menu:
       weight: 3
 params:
   author: Brant Konetchy
-  avatar: "assets/avatar.jpg" 
+  avatar: "avatar.jpg" 
   description: Data Analyst 
   menu_item_separator: ' - '
   social:
