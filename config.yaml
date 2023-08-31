@@ -1,4 +1,4 @@
-baseURL: https://earnest-churros-42c58b.netlify.app/
+baseURL: https://bkonetchy.netlify.app
 title: Brant Konetchy
 theme: hugo-theme-m10c
 paginate: 8
@@ -18,7 +18,7 @@ menu:
       weight: 3
 params:
   author: Brant Konetchy
-  avatar: "bkavatar.jpg" 
+  avatar: "bkavatar2.jpg" 
   description: Data Analyst 
   menu_item_separator: ' - '
   social:
