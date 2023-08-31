@@ -18,7 +18,7 @@ menu:
       weight: 3
 params:
   author: Brant Konetchy
-  avatar: "bkavatar2.jpg" 
+  avatar: "bkavatar3.jpg" 
   description: Data Analyst
   menu_item_separator: ' - '
   social:
@@ -28,9 +28,9 @@ params:
   style:
     darkestColor: "#6D4C3D"
     darkColor: "#586157"
-    lightColor: "#f5e3e0"
+    lightColor: "#E9E0DD"
     lightestColor: "#f5f5f5"
-    primaryColor: "#179FA4"
+    primaryColor: "#24BBC1"
 
 
 markup:
