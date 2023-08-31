@@ -1,5 +1,5 @@
-baseURL: https://example.com
-title: Your title
+baseURL: https://earnest-churros-42c58b.netlify.app/
+title: Brant Konetchy
 theme: hugo-theme-m10c
 paginate: 8
 menu:
@@ -17,16 +17,14 @@ menu:
       url: /about/
       weight: 3
 params:
-  author: John Doe
-  description: Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+  author: Brant Konetchy
+  avatar: "assets/avatar.jpg" 
+  description: Data Analyst 
   menu_item_separator: ' - '
   social:
     - icon: github
       name: Github
-      url: https://github.com/gohugoio
-    - icon: twitter
-      name: Twitter
-      url: https://twitter.com/gohugoio
+      url: https://github.com/bkonetchy
 
 markup:
   goldmark:
