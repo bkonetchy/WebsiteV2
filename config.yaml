@@ -4,7 +4,7 @@ theme: hugo-theme-m10c
 paginate: 8
 menu:
   main:
-    - identifier: home
+    - identifier: about
       name: Home
       url: /about/
       weight: 1
