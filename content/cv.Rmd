@@ -6,4 +6,6 @@ title: "CV"
 
 ```{r}
 knitr::include_url("https://drive.google.com/file/d/1QVTY6VTq92SJIsJAu9pxVm3gc8aymJhO/view")
+
+knitr::include_graphics(path = "../static/BKonetchy_Resume.pdf")
 ```
