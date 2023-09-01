@@ -20,6 +20,10 @@ menu:
       name: Tags
       url: /tags/
       weight: 4
+    - identifier: site
+      name: Site
+      url: /site/
+      weight: 5
 params:
   author: Brant Konetchy
   avatar: "bkavatar3.jpg" 
