@@ -6,7 +6,7 @@ menu:
   main:
     - identifier: about
       name: Home
-      url: /about/
+      url: /
       weight: 1
     - identifier: posts
       name: Posts
