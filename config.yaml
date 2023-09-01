@@ -1,20 +1,20 @@
 baseURL: https://bkonetchy.netlify.app
-title: Brant Konetchy
+title: Introduction
 theme: hugo-theme-m10c
 paginate: 8
 menu:
   main:
-    - identifier: home
+    - identifier: about
       name: Home
       url: /
-      weight: 1
+      weight: 3
+    - identifier: home
+      name: Posts
+      url: /
+      weight: 2
     - identifier: tags
       name: Tags
       url: /tags/
-      weight: 2
-    - identifier: about
-      name: About
-      url: /about/
       weight: 3
 params:
   author: Brant Konetchy
