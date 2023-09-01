@@ -1,5 +1,5 @@
-baseURL: https://bkonetchy.netlify.app
-title: Introduction
+baseURL: https://https://bkonetchy.com/about/
+title: Brant Konetchy
 theme: hugo-theme-m10c
 paginate: 8
 menu:
@@ -12,10 +12,14 @@ menu:
       name: Posts
       url: /
       weight: 2
+    - identifier: cv
+      name: CV
+      url: /cv/
+      weight: 3
     - identifier: tags
       name: Tags
       url: /tags/
-      weight: 3
+      weight: 4
 params:
   author: Brant Konetchy
   avatar: "bkavatar3.jpg" 
