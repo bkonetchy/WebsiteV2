@@ -8,12 +8,8 @@ title: "CV"
 knitr::include_url("https://drive.google.com/file/d/1QVTY6VTq92SJIsJAu9pxVm3gc8aymJhO/view")
 ```
 
-<iframe src="https://drive.google.com/file/d/1QVTY6VTq92SJIsJAu9pxVm3gc8aymJhO/view" width="672" height="700px" data-external="1">
+<iframe src="https://drive.google.com/file/d/1QVTY6VTq92SJIsJAu9pxVm3gc8aymJhO/preview" width="672" height="700px" data-external="1">
 
 </iframe>
 
-``` r
-knitr::include_graphics(path = "BKonetchy_Resume.pdf")
-```
-
-![](../static/BKonetchy_Resume.pdf)<!-- -->
+\<iframe src="[https://drive.google.com/file/d/1QVTY6VTq92SJIsJAu9pxVm3gc8aymJhO/preview"](https://drive.google.com/file/d/1QVTY6VTq92SJIsJAu9pxVm3gc8aymJhO/preview") width="640" height="480" allow="autoplay"\>\</iframe\>
