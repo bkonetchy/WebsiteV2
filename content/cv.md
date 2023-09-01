@@ -13,7 +13,7 @@ knitr::include_url("https://drive.google.com/file/d/1QVTY6VTq92SJIsJAu9pxVm3gc8a
 </iframe>
 
 ``` r
-knitr::include_graphics(path = "../static/BKonetchy_Resume.pdf")
+knitr::include_graphics(path = "BKonetchy_Resume.pdf")
 ```
 
 ![](../static/BKonetchy_Resume.pdf)<!-- -->
