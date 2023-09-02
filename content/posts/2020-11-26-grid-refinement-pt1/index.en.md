@@ -1,9 +1,9 @@
 ---
-title: Grid Refinement Part 1
-author: Brant Konetchy
+title: "Grid Refinement Part 1"
+author: "Brant Konetchy"
 date: '2020-11-26'
 categories: ["R"]
-tags: ["Grid Refinement"]
+tags: ["Grid Refinement", "ggplot"]
 ---
 
 ## Introduction
