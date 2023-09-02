@@ -2,9 +2,8 @@
 title: Grid Refinement Part 1
 author: Brant Konetchy
 date: '2020-11-26'
-tags:
-  - Grid Refinement
-  - R
+categories: ["R"]
+tags: ["R", "Grid Refinement"]
 ---
 
 ## Introduction
