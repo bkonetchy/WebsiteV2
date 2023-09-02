@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Grid Refinement on Brant Konetchy</title>
+    <link>https://bkonetchy.com/categories/grid-refinement/</link>
+    <description>Recent content in Grid Refinement on Brant Konetchy</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Thu, 26 Nov 2020 00:00:00 +0000</lastBuildDate>
+    
+	<atom:link href="https://bkonetchy.com/categories/grid-refinement/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Grid Refinement Part 1</title>
+      <link>https://bkonetchy.com/posts/grid-refinement-pt1/</link>
+      <pubDate>Thu, 26 Nov 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://bkonetchy.com/posts/grid-refinement-pt1/</guid>
+      <description>IntroductionThe grid refinement code was developed to allow for localized refinement of a grid. The idea itself came from my work with MODFLOW USG, which allowed for local refinement of model grids using a quad tree refinement method. I wanted to develop a method within R that could allow me to quickly refine a grid, and then use that grid for any analysis I wanted to perform. What follows is an explanation of the code, assumptions, and examples of a grid refinement method in R.</description>
+    </item>
+    
+  </channel>
+</rss>

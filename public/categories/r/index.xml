@@ -21,5 +21,14 @@ You can embed an R code chunk like this:
 summary(cars) ## speed dist  ## Min. : 4.0 Min. : 2.00  ## 1st Qu.:12.0 1st Qu.: 26.00  ## Median :15.0 Median : 36.00  ## Mean :15.4 Mean : 42.</description>
     </item>
     
+    <item>
+      <title>Grid Refinement Part 1</title>
+      <link>https://bkonetchy.com/posts/grid-refinement-pt1/</link>
+      <pubDate>Thu, 26 Nov 2020 00:00:00 +0000</pubDate>
+      
+      <guid>https://bkonetchy.com/posts/grid-refinement-pt1/</guid>
+      <description>IntroductionThe grid refinement code was developed to allow for localized refinement of a grid. The idea itself came from my work with MODFLOW USG, which allowed for local refinement of model grids using a quad tree refinement method. I wanted to develop a method within R that could allow me to quickly refine a grid, and then use that grid for any analysis I wanted to perform. What follows is an explanation of the code, assumptions, and examples of a grid refinement method in R.</description>
+    </item>
+    
   </channel>
 </rss>
