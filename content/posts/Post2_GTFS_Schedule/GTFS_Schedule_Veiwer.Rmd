@@ -1,0 +1,58 @@
+---
+title: "GTFS Schedule Viewer"
+author: "Brant Konetchy"
+date: "2023-09-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# GTFS Schedule Viewer
+
+This post will go through how to process a GTFS file in order to view the results as a standard schedule table. We want a result that is similar to standard schedules like those found here: . By processing GTFS results in this manor produces a table that is both easy to read and the standard format for reading transportation schedules. This can be very helpful when trying to debug or check GTFS for accuracy and let non-technical users easily access the schedules within a GTFS file. The goals for this post is the following:
+
+1.  Read in a GTFS feed.
+
+2.  Filter for a specific day (non-holiday Tuesday) to be the representative weekday schedule (M-F).
+
+3.  Extract a single route and process the schedule for that day.
+
+4.  Produce the final table.
+
+## Step 1: Read in GTFS feed
+
+Any GTFS feed can be used, but in this example I will be using the Germany wide GTFS feed produced by DELFI ([GTFS Germany](https://www.opendata-oepnv.de/fileadmin/datasets/delfi/20230904_fahrplaene_gesamtdeutschland_gtfs.zip)) and extracting the data that intersects Berlin. For the Berlin boarder shape I downloaded the [NUTS dataset](https://ec.europa.eu/eurostat/web/gisco/geodata/reference-data/administrative-units-statistical-units/nuts).
+
+```{r message=FALSE, warning=FALSE}
+library(sf)
+library(gtfstools)
+library(dplyr)
+
+# read in gtfs feed
+gtfs <- gtfstools::read_gtfs(path = "../../../../Datasets/20230904_fahrplaene_gesamtdeutschland_gtfs.zip")
+
+# read in NUTS polylines and filter to berlin
+NUTS <- st_read(dsn = "../../../../Datasets/NUTS_RG_01M_2021_4326.shp", 
+                layer = "NUTS_RG_01M_2021_4326") %>% 
+  filter(LEVL_CODE == 3) %>% 
+  filter(CNTR_CODE == "DE") %>% 
+  filter(NUTS_NAME == "Berlin")
+
+# use built in function to select all routes within and passing through berlin
+
+
+```
+
+## Step 2: Filter for Exact Date
+
+When working with GTFS, I found it generally more useful to filter for an exact date rather then just a generic day during the week. The main reason for this is that a route can have minimal or drastic changes depending on planned construction projects. By selecting an exact date we can evaluate the route to see if it is going on the attended "normal" path or if it is being deviated for some reason. This can be especially important if the GTFS feed is being using with routing software like that in the R5R package. The R5R package requires a single day to run the routing analysis, so we want to ensure that that day chose aligns with what we expect travelers to use or we want them to use. This can lead to some odd coding dicesions in this case, in which I will switch between two different GTFS processing packages (gtfsools) and (tidytransit). In the first step we used gtfstools to read in the GTFS feed. This is because gtfstools is genearly faster than tidytransit, but for this step we want to use the function "filterbyexactday" in tidytransit. So we need to convert the GTFS class to the tidytransit class to use the function. Luckily, both packages come with converters making it easy to switch back and forth between the two.
+
+## Step 3: Extract Route for Processing
+
+Now that we have a GTFS feed filtered for an exact date lets select a single route to use. In this example I will use Bus line 222 that runs between "" and "". In order to get the correct data to create the schedule we will have to perform some filters to extract the datasets we need. I will do this step by step.
+
+## Step 4: Produce the Final Schedule Table
+
+Now that we have the schedule data in a clean format we can use, lets display it in a nice table that is easy for viewers to look at and use.
