@@ -1,0 +1,182 @@
+---
+title: "GTFS Schedule Viewer"
+author: "Brant Konetchy"
+date: "2023-09-06"
+categories: ["R"]
+tags: ["R", "leaflet", "GTFS"]
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+library(sf)
+library(dplyr)
+library(leaflet)
+library(data.table)
+
+# load gtfs file
+gtfs <- gtfstools::read_gtfs(path = "../../../../Datasets/post2_gtfs.zip")
+
+NUTS <- st_read(dsn = "../../../../Datasets/NUTS_RG_01M_2021_4326.shp", 
+                layer = "NUTS_RG_01M_2021_4326") %>% 
+  filter(LEVL_CODE == 3) %>% 
+  filter(CNTR_CODE == "DE") %>% 
+  filter(NUTS_NAME == "Berlin") %>%
+  st_transform(crs = 3035) %>% # convert to projected meter system covering germany
+  st_buffer(dist = 5000) %>% # extract extra area round berlin by 5 km
+  st_transform(crs = "WGS84") # convert back to WGS84
+
+leaflet() %>%
+  addTiles() %>%
+  addPolygons(data = NUTS)
+```
+
+# GTFS Schedule Viewer
+
+This post will go through how to process a GTFS file in order to view the results as a standard schedule table. We want a result that is similar to standard schedules like those found here: . By processing GTFS results in this manor produces a table that is both easy to read and the standard format for reading transportation schedules. This can be very helpful when trying to debug or check GTFS for accuracy and let non-technical users easily access the schedules within a GTFS file. The goals for this post is the following:
+
+1.  Read in a GTFS feed.
+
+2.  Filter for a specific day (non-holiday Tuesday) to be the representative weekday schedule (M-F).
+
+3.  Filter for just area of interest (Berlin).
+
+4.  Extract a single route and process the schedule for that day.
+
+5.  Produce the final table.
+
+## Step 1: Read in GTFS feed
+
+Any GTFS feed can be used, but in this example I will be using the Germany wide GTFS feed produced by DELFI ([GTFS Germany](https://www.opendata-oepnv.de/fileadmin/datasets/delfi/20230904_fahrplaene_gesamtdeutschland_gtfs.zip)) and extracting the data that intersects Berlin. For the Berlin boarder shape I downloaded the [NUTS dataset](https://ec.europa.eu/eurostat/web/gisco/geodata/reference-data/administrative-units-statistical-units/nuts). Warning for a large GTFS file it can take up to a few minutes to read in the GTFS feed.
+
+```{r message=FALSE, warning=FALSE, eval=FALSE}
+library(sf)
+library(dplyr)
+library(leaflet)
+library(data.table)
+
+# read in gtfs feed
+gtfs <- tidytransit::read_gtfs(path = "../../Datasets/20230904_fahrplaene_gesamtdeutschland_gtfs.zip")
+
+# read in NUTS polylines and filter to berlin
+NUTS <- st_read(dsn = "../../Datasets/NUTS_RG_01M_2021_4326.shp", 
+                layer = "NUTS_RG_01M_2021_4326") %>% 
+  filter(LEVL_CODE == 3) %>% 
+  filter(CNTR_CODE == "DE") %>% 
+  filter(NUTS_NAME == "Berlin") %>%
+  st_transform(crs = 3035) %>% # convert to projected meter system covering germany
+  st_buffer(dist = 5000) %>% # extract extra area round berlin by 5 km
+  st_transform(crs = "WGS84") # convert back to WGS84
+
+
+```
+
+```{r, out.width="100%"}
+# take a look at the area we want to extract
+leaflet() %>%
+  addTiles() %>%
+  addPolygons(data = NUTS)
+```
+
+## Step 2: Filter for Exact Date and Berlin Area
+
+When working with GTFS, I found it generally more useful to filter for an exact date rather then just a generic day during the week. The main reason for this is that a route can have minimal or drastic changes depending on planned construction projects. By selecting an exact date we can evaluate the route to see if it is going on the attended "normal" path or if it is being deviated for some reason. This can be especially important if the GTFS feed is being using with routing software like that in the R5R package. The R5R package requires a single day to run the routing analysis, so we want to ensure that that day chose aligns with what we expect travelers to use or we want them to use. This can lead to some odd coding decisions in this case, in which I will switch between two different GTFS processing packages (gtfsools) and (tidytransit). In the first step I used tidytransit to read in the dataset so that I could use the filter by exact day function. This causes the initial load time to be longer as tidytransit generally takes longer to read in GTFS files as gtfstools. However, after we finish the filter by day, we want to convert to the gtftools data type for the rest of the analysis. Luckily, both packages come with converters making it easy to switch back and forth between the two. Generally I would also advise to work with smaller feeds due to the time cost of filtering larger feeds, but when not possible its best to filter out as much data as possible before performing the spatial filter as I do here. In this example the size of the dataset decresses drastically from each filter with a starting size of 2.9 gb and ending at about 104 mb.
+
+```{r eval=FALSE}
+# filter by date
+gtfs <- tidytransit::filter_feed_by_date(gtfs_obj = gtfs, 
+                                         extract_date = "2023-10-17")
+
+# convert back to gtfstools data type
+gtfs <- gtfstools::as_dt_gtfs(gtfs)
+
+# filter area to just Berlin
+gtfs <- gtfstools::filter_by_sf(gtfs = gtfs, 
+                                geom = st_geometry(NUTS)) # here I used st_geometry to reduce the sf datset to a sfc, or just the geometry
+```
+
+## Step 3: Extract Route for Processing
+
+Now that we have a GTFS feed filtered for an exact date lets select a single route to use. In this example I will use Bus line 222 that runs between "" and "". In order to get the correct data to create the schedule we will have to perform some filters to extract the datasets we need. I will do this step by step.
+
+```{r}
+
+# find the route id for bus line 222
+route_id <- gtfs$routes[route_short_name %like% 222]$route_id
+
+# use gtfstools filter by route id function
+route_222 <- gtfstools::filter_by_route_id(gtfs = gtfs, route_id = route_id)
+
+# Extract trip ids per direction
+trip_ids_0 <- route_222$trips[direction_id == 0]$trip_id
+trip_ids_1 <- route_222$trips[direction_id == 1]$trip_id
+
+# extract all stop ids associated with the route in each direction
+stop_ids_0 <- route_222$stop_times[trip_id %in% trip_ids_0]$stop_id
+stop_ids_1 <- route_222$stop_times[trip_id %in% trip_ids_1]$stop_id
+
+# find the stop times associated with each trip in each direction
+stop_times_0 <- route_222$stop_times[trip_id %in% trip_ids_0]
+stop_times_1 <- route_222$stop_times[trip_id %in% trip_ids_1]
+
+```
+
+## Step 4: Produce the Final Schedule Table
+
+Now that we have the schedule data components extracted, lets put them together to produce our final schedule table.
+
+### Step 1: Order Stops by Earliest Arrival Time
+
+This section of code finds the earliest arrival time for every stop and then orders it from the earliest time. We then add a new column with the order of the earliest to latest stop arrival.
+
+```{r}
+stop_order_0 <- stop_times_0[,.("arrival_time" = min(arrival_time)), stop_id][order(arrival_time)]
+stop_order_0$stop_order <- 1:nrow(stop_order_0)
+stop_order_1 <- stop_times_1[,.("arrival_time" = min(arrival_time)), stop_id][order(arrival_time)]
+stop_order_1$stop_order <- 1:nrow(stop_order_1)
+```
+
+### Step 2: Order Trips by Earliest Arrival Time
+
+This section of code is very similar to the previous except this time we are ordering the trips by earliest arrival time.
+
+```{r}
+trip_order_0 <- stop_times_0[,.("arrival_time" = min(arrival_time)), trip_id][order(arrival_time)]
+trip_order_0$trip_order <- 1:nrow(trip_order_0)
+trip_order_1 <- stop_times_1[,.("arrival_time" = min(arrival_time)), trip_id][order(arrival_time)]
+trip_order_1$trip_order <- 1:nrow(trip_order_1)
+```
+
+### Step 3: Merge in Stop Times
+
+This step merges back the stop times with the stop and trip order columns. We will also merge in the stop table that contains the name of each stop to use in the final table.
+
+```{r}
+stop_times_0 <- merge(stop_times_0, 
+                      y = stop_order_0[,.(stop_id, stop_order)], 
+                      by = "stop_id") %>%
+  merge(y = trip_order_0[,.(trip_id, trip_order)], by = "trip_id") %>%
+  merge(y = route_222$stops[,.(stop_id, stop_name)], by = "stop_id")
+
+stop_times_1 <- merge(stop_times_1, 
+                      y = stop_order_1[,.(stop_id, stop_order)], 
+                      by = "stop_id") %>%
+  merge(y = trip_order_1[,.(trip_id, trip_order)], by = "trip_id") %>%
+  merge(y = route_222$stops[,.(stop_id, stop_name)], by = "stop_id")
+
+```
+
+### Step 4: Convert the Stop Times into a Wide Format
+
+```{r, out.width="100%"}
+library(reactable)
+
+# create table for direction 0 by casting to wide format
+stop_times_0_wide <- data.table::dcast.data.table(data = stop_times_0, formula = stop_order+stop_name ~ trip_order, value.var = "arrival_time")
+
+# view the results in a nice table
+reactable(data = stop_times_0_wide, pagination = F, height = 600, 
+          theme = reactableTheme(color = "black"))
+
+
+```
