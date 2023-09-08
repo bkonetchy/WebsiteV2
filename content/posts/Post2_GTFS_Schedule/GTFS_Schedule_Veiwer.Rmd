@@ -4,7 +4,6 @@ author: "Brant Konetchy"
 date: "2023-09-06"
 categories: ["R"]
 tags: ["R", "leaflet", "GTFS"]
-output: html_document
 ---
 
 ```{r setup, include=FALSE}
