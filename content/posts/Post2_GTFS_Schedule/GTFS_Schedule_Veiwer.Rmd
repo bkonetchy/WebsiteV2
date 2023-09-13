@@ -1,9 +1,10 @@
 ---
-title: "GTFS Schedule Viewer"
+title: "GTFS Time Table Viewer"
 author: "Brant Konetchy"
 date: "2023-09-06"
 categories: ["R"]
 tags: ["R", "leaflet", "GTFS"]
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -14,9 +15,9 @@ library(leaflet)
 library(data.table)
 
 # load gtfs file
-gtfs <- gtfstools::read_gtfs(path = "../../../../Datasets/post2_gtfs.zip")
+gtfs <- gtfstools::read_gtfs(path = "../../Datasets/post2_gtfs.zip")
 
-NUTS <- st_read(dsn = "../../../../Datasets/NUTS_RG_01M_2021_4326.shp", 
+NUTS <- st_read(dsn = "../../Datasets/NUTS_RG_01M_2021_4326.shp", 
                 layer = "NUTS_RG_01M_2021_4326") %>% 
   filter(LEVL_CODE == 3) %>% 
   filter(CNTR_CODE == "DE") %>% 
@@ -30,19 +31,9 @@ leaflet() %>%
   addPolygons(data = NUTS)
 ```
 
-# GTFS Schedule Viewer
+# GTFS Time Table Viewer
 
-This post will go through how to process a GTFS file in order to view the results as a standard schedule table. We want a result that is similar to standard schedules like those found here: . By processing GTFS results in this manor produces a table that is both easy to read and the standard format for reading transportation schedules. This can be very helpful when trying to debug or check GTFS for accuracy and let non-technical users easily access the schedules within a GTFS file. The goals for this post is the following:
-
-1.  Read in a GTFS feed.
-
-2.  Filter for a specific day (non-holiday Tuesday) to be the representative weekday schedule (M-F).
-
-3.  Filter for just area of interest (Berlin).
-
-4.  Extract a single route and process the schedule for that day.
-
-5.  Produce the final table.
+This post will go through how to process a GTFS file in order to view the results as a standard time table. We want a result that is similar to standard time tables like those found here: . By processing GTFS results in this manor produces a table that is both easy to read and easy to check for any issues with the GTFS feed. This can be very helpful when trying to debug or check GTFS for accuracy and let non-technical users easily access the time tables within a GTFS file.
 
 ## Step 1: Read in GTFS feed
 
@@ -96,7 +87,7 @@ gtfs <- gtfstools::filter_by_sf(gtfs = gtfs,
 
 ## Step 3: Extract Route for Processing
 
-Now that we have a GTFS feed filtered for an exact date lets select a single route to use. In this example I will use Bus line 222 that runs between "" and "". In order to get the correct data to create the schedule we will have to perform some filters to extract the datasets we need. I will do this step by step.
+Now that we have a GTFS feed filtered for an exact date lets select a single route to use. In this example I will use Bus line 222 that runs between "" and "". In order to get the correct data to create the time table we will have to perform some filters to extract the datasets we need. I will do this step by step.
 
 ```{r}
 
@@ -118,26 +109,66 @@ stop_ids_1 <- route_222$stop_times[trip_id %in% trip_ids_1]$stop_id
 stop_times_0 <- route_222$stop_times[trip_id %in% trip_ids_0]
 stop_times_1 <- route_222$stop_times[trip_id %in% trip_ids_1]
 
+# parent stations do not extis in the GTFS feed so we will create ourselves
+# GTFS feed uses a standard german naming system for stops making it easy to obtain the parent station values
+stop_parent_ids_0 <- 
+  data.table("stop_id" = stop_ids_0,
+             "parent_id" = lapply(X = stop_ids_0, 
+                                  FUN = function(x) {
+                                    stringr::str_split_1(string = x, 
+                                                         pattern = "::")}) %>% 
+                                  do.call(rbind, .) %>% 
+                                  as.data.frame() %>% 
+                                  select(1)) %>%
+  distinct()
+
+stop_parent_ids_1 <- 
+  data.table("stop_id" = stop_ids_1,
+             "parent_id" = lapply(X = stop_ids_1, 
+                                  FUN = function(x) {
+                                    stringr::str_split_1(string = x, 
+                                                         pattern = "::")}) %>% 
+                                  do.call(rbind, .) %>% 
+                                  as.data.frame() %>% 
+                                  select(1)) %>%
+  distinct()
+
 ```
 
-## Step 4: Produce the Final Schedule Table
+## Step 4: Produce the Final Time Table
 
-Now that we have the schedule data components extracted, lets put them together to produce our final schedule table.
+Now that we have the time table data components extracted, lets put them together to produce our final time table.
 
 ### Step 1: Order Stops by Earliest Arrival Time
 
-This section of code finds the earliest arrival time for every stop and then orders it from the earliest time. We then add a new column with the order of the earliest to latest stop arrival.
+This section of code finds the earliest arrival time for every stop and then orders it from the earliest time. We then add a new column with the order of the earliest to latest stop arrival. The major assumption is that all trips will use the same stop locations and start at the same stop location.
 
 ```{r}
-stop_order_0 <- stop_times_0[,.("arrival_time" = min(arrival_time)), stop_id][order(arrival_time)]
+stop_order_0 <- stop_times_0[,.("arrival_time" = min(arrival_time)), stop_id]
+# merge in parent ids and reorder only using parent ids
+stop_order_0 <- merge(stop_order_0, stop_parent_ids_0, by = "stop_id")
+stop_order_0 <- stop_order_0 %>% 
+  group_by(parent_id.V1) %>% 
+  filter(arrival_time == min(arrival_time)) %>% 
+  arrange(arrival_time) %>%
+  as.data.table()
 stop_order_0$stop_order <- 1:nrow(stop_order_0)
+
+# table for direction 1
 stop_order_1 <- stop_times_1[,.("arrival_time" = min(arrival_time)), stop_id][order(arrival_time)]
+# merge in parent ids and reorder only using parent ids
+stop_order_1 <- merge(stop_order_1, stop_parent_ids_1, by = "stop_id")
+stop_order_1 <- stop_order_1 %>% 
+  group_by(parent_id.V1) %>% 
+  filter(arrival_time == min(arrival_time)) %>% 
+  arrange(arrival_time) %>%
+  as.data.table()
 stop_order_1$stop_order <- 1:nrow(stop_order_1)
 ```
 
 ### Step 2: Order Trips by Earliest Arrival Time
 
-This section of code is very similar to the previous except this time we are ordering the trips by earliest arrival time.
+This section of code is very similar to the previous except this time we are ordering the trips by earliest arrival time. The major assumption is that all trips use the same stop locations for each trip, therefore ordering my earliest arrival time should put them in the correct order.
 
 ```{r}
 trip_order_0 <- stop_times_0[,.("arrival_time" = min(arrival_time)), trip_id][order(arrival_time)]
@@ -168,14 +199,294 @@ stop_times_1 <- merge(stop_times_1,
 ### Step 4: Convert the Stop Times into a Wide Format
 
 ```{r, out.width="100%"}
-library(reactable)
+# create table for direction 0 by casting to wide format
+stop_times_0_wide <- data.table::dcast.data.table(data = stop_times_0, formula = stop_order+stop_name+stop_id ~ trip_order, value.var = "arrival_time")
+# clean colnames
+colnames(stop_times_0_wide) <- c("Stop Order", "Stop Names","Stop_ID", 
+                            paste0("Trip_", 1:(length(stop_times_0_wide)-3)))
 
 # create table for direction 0 by casting to wide format
-stop_times_0_wide <- data.table::dcast.data.table(data = stop_times_0, formula = stop_order+stop_name ~ trip_order, value.var = "arrival_time")
-
-# view the results in a nice table
-reactable(data = stop_times_0_wide, pagination = F, height = 600, 
-          theme = reactableTheme(color = "black"))
+stop_times_1_wide <- data.table::dcast.data.table(data = stop_times_1, formula = stop_order+stop_name+stop_id ~ trip_order, value.var = "arrival_time")
+# clean colnames
+colnames(stop_times_1_wide) <- c("Stop Order", "Stop Names","Stop_ID", 
+                            paste0("Trip_", 1:(length(stop_times_1_wide)-3)))
 
 
 ```
+
+### Step 5: Display Time Table
+
+Here we will produce the first results of the table. This will not be our final clean version, but we can use it to see if our assumptions about ordering by earliest stop and trip worked.
+
+```{r}
+library(reactable)
+library(reactablefmtr)
+
+# view the results in a nice table
+reactable(data = stop_times_0_wide, pagination = F, height = 800, 
+          theme = reactableTheme(color = "black")) %>%
+  add_title("Bus Line 222 Time Table") %>%
+  add_subtitle("Direction 0")
+
+# view the results in a nice table
+reactable(data = stop_times_1_wide, pagination = F, height = 800, 
+          theme = reactableTheme(color = "black")) %>%
+  add_title("Bus Line 222 Time Table") %>%
+  add_subtitle("Direction 1")
+
+```
+
+Looking at the schedules they do appear to be in the correct order or at least in most cases. However, it is difficult to catch any errors unless we go line by line. So instead we will use some automated tests to make sure that all times are displayed correctly.
+
+## Step 5: Check Results
+
+Now that we have created the time table lets perform a series of automated checks to see if the results we have produced are correct. We will perform two basic checks that will ensure that the table is in the correct order. The first will check each column and makes sure that the value in the next row is always greater than the previous value, as we should always be increasing in time when going to the next stop. The second check will look at each row and perform the same test but looking at each trip (column) should start at a later time as the previous trip.
+
+### Check 1: Stop Order
+
+This check will produce a vector of time values that will exclude all NA values and then perform a comparison that will check of the previous time value is greater than the next time value. If all time values are in the correct order we should receive a TRUE value.
+
+```{r}
+# create a function to check all values in a column
+column_check_fun <- function(time_values) {
+  
+  # remove any nas from vector (effectivly removes stops not being stopped at)
+  time_values <- time_values[!is.na(time_values)]
+  
+  # lag vector
+  lag_vect <- time_values[1:(length(time_values)-1)]
+  # lead vector
+  lead_vector <- time_values[2:length(time_values)]
+  # check if the lead value is greater than the lag value
+  test <- lead_vector > lag_vect
+  return(all(test))
+}
+
+# run checks on columns
+col_checks <- apply(X = stop_times_0_wide[,c(-1,-2,-3)], MARGIN = 2, FUN = column_check_fun)
+
+# see if all values are true or not
+all(col_checks)
+```
+
+As we can see from the printout we received a FALSE value, so we do have time values out of order indicating that our stop order was not correct. Lets extract the stops that we are having issues with and do some exploration to see if we can come up with a solution to fix the issue.
+
+```{r}
+# extract the trips with an error and perform a more indepth analysis 
+trip_errors <- which(col_checks == F)
+
+# go through each trip and return the lead stop(s) that is causing the issue
+trip_errors <- lapply(trip_errors, FUN = function(x) {
+  
+  # subset for trip, order by stop order, and find diff in stop sequence
+  temp <- stop_times_0[trip_order == x][order(stop_order), diff(x = stop_sequence)]
+  
+  # find vlue that does not equal 1 (diff in the sequence should always be 1)
+  hold <- (which(temp != 1):length(temp)) + 1 # add 1 to get the actual stop with the issue, we want all values after this as well
+  
+  # return the stop information with the issue
+  stop_times_0[trip_order == x][order(stop_order)][hold]
+  
+}) %>%
+  do.call(rbind, .)
+
+# find which stops are causing the issue
+stops_to_change <- trip_errors[,unique(stop_id)]
+stops_to_change
+```
+
+We found two stops that appear to have an issue. Let us take a look at one of the trips and see if we can find the exact issue in one case.
+
+```{r}
+# extract the trip order numbers from the trip_errors table
+trip_order_numb <- unique(trip_errors$trip_order)
+trip_order_numb
+# lets view the schedule of the trips with the errors and see if we can spot the issue
+# note becuase the way the table is set up I can simply add 3 to the trip order number to get the correct column number
+reactable(data = stop_times_0_wide[,c(1:3, trip_order_numb+3), with = F], 
+          pagination = F, 
+          height = 800, 
+          theme = reactableTheme(color = "black")) %>%
+  add_title("Bus Line 222 Time Table") %>%
+  add_subtitle("Direction 0")
+```
+
+If we scroll to the bottom of the table we will find the two stops. They both have time values that should be much earlier in the table. What appears to have occurred is that these two trips may be a bit unique and those two stops only appear a few times, so ended up much lower in the stop order than expected. Our initial assumption was that the stop order for all trips should be about the same, but in this case it does not appear to be. For a solution, the simplest method would be to move the stop order up until it is correct. I have created while loop that will move the stop order up by one location, check if the time order is correct and then either break out of the loop and move onto the next stop, or continue moving the stop order until it is correct.
+
+```{r}
+# assume that placing these stops at some higger stop order should produce the correct results, will loop through each attempt until all times are correct or fail after going through the complete stop order
+lapply(stops_to_change, FUN = function(stops_change) {
+  
+  # create new stop order by starting by placing the change stop in the first postion and working down until the times are in the correct order
+  i <- 1
+  while (i < nrow(stop_times_0_wide)) {
+    #print(i)
+    # find current stop order
+    cur_stop_order <- stop_times_0_wide[Stop_ID == stops_change]$`Stop Order`
+    # make desired stop order one value higher
+     stop_times_0_wide[`Stop Order` == cur_stop_order - 1]$`Stop Order` <- cur_stop_order
+    # change the stop order postion
+    stop_times_0_wide[Stop_ID == stops_change]$`Stop Order` <- cur_stop_order - 1
+    # save current version of stop times 0 wide to global env
+    stop_times_0_wide <<- stop_times_0_wide[order(`Stop Order`)]
+    # rerun col checks and see if all values are true
+    col_checks <- apply(X = stop_times_0_wide[,c(-1,-2,-3)], MARGIN = 2, 
+                        FUN = column_check_fun)
+    # increase postion
+    i <- i + 1
+    # break if all values are true, if not repeat with the next position
+    if (all(col_checks)) {
+      break
+    }
+    
+  }
+})
+
+# remake stop order starting from 1
+stop_times_0_wide$`Stop Order` <- 1:nrow(stop_times_0_wide)
+
+
+```
+
+Recheck and make sure that fixed the issue or not.
+
+```{r}
+# run checks on columns
+col_checks <- apply(X = stop_times_0_wide[,c(-1,-2,-3)], MARGIN = 2, FUN = column_check_fun)
+
+# see if all values are true or not
+all(col_checks)
+```
+
+It appears that our method worked and that all stops are in the correct order. Now lets run a similar check on the rows.
+
+### Check 2: Trip Order
+
+Like the previous check we will produce a single vector of time values by row in order of the trips. We will check that all previous times are less than the following time. This check function is slightly different in that I have opted to return the full test data.frame instead of running the all check and returning just a TRUE or FALSE value. The reason for this is to save time in extracting potential trips with errors, I could also adjust the column check to do the same, but thought it is also good to show different solutions.
+
+```{r}
+# create a function to check all values by row
+row_check_fun <- function(time_values) {
+  
+  if (all(is.na(time_values))) {
+    return(NA)
+  }
+  
+  # remove any nas from vector (effectivly removes stops not being stopped at)
+  time_values <- time_values[!is.na(time_values)]
+  
+  # check if time value only has 1 value then return NA
+  if (length(time_values) == 1) {
+    return(NA)
+  }
+  
+  # lag vector
+  lag_vect <- time_values[1:(length(time_values)-1)]
+  # lead vector
+  lead_vector <- time_values[2:length(time_values)]
+  # check if the lead value is greater than the lag value
+  test <- lead_vector > lag_vect
+  return(test)
+}
+
+# run checks on columns
+row_checks <- apply(X = stop_times_0_wide[,c(-1,-2,-3)], MARGIN = 1, FUN = row_check_fun, simplify = F)
+
+# see if all values are true or not
+all(row_checks %>% unlist(), na.rm = T)
+```
+
+Once again we return FALSE indicating that there are issues with the trip order. Lets extract which trips are the issue when checking by row.
+
+```{r}
+# find trip numbers that are the issue
+row_checks <- lapply(row_checks, function(x) {
+  
+  # find all trips that failed
+  temp <- which(x != T)
+  
+  # get the names of the trips
+  names(temp)
+  
+  }) %>%
+  unlist() %>%
+  unique() %>%
+  gtools::mixedsort()
+
+row_checks
+```
+
+We have 13 trips in which the time values are earlier than expected. Once again lets take a look at an example to see the issue ourselves.
+
+```{r}
+# column numbers 8 and 9 are trip_5 and trip_6
+reactable(data = stop_times_0_wide[,c(1:3,8:9), with = F], 
+          pagination = F, 
+          height = 800, 
+          theme = reactableTheme(color = "black")) %>%
+  add_title("Bus Line 222 Time Table") %>%
+  add_subtitle("Direction 0")
+```
+
+Scrolling down to stop 34, we can see the issue. We go from 6:30 to 6:01. Once again the solution appears to move the trip down, check if that fixed the issue, repeat if not or break if it does fix it. We will do this for all trips and this should hopefully correct the issues. Our initial assumption that the trip order could be sorted by the earliest trip fails here. As trip 5 technically starts earlier, but trip 6 is unique and doesn't start its trip until stop 34 causing the times by row to fail.
+
+```{r}
+# move each trip earlier in the schedule and check if that fixes the issue or not. assumption is that they would have to occur earlier to work.
+lapply(row_checks, FUN = function(col_name) {
+  
+  # create new stop order by starting by placing the change stop in the first postion and working down until the times are in the correct order
+  
+  # find current stop order
+  cur_trip_number <- gsub(pattern = "Trip_", replacement = "", x = col_name) %>%
+      as.integer()
+  i <- cur_trip_number
+  while (i > 0) {
+    # extract vector of time table data
+    cur_trip_column <- stop_times_0_wide[,paste0("Trip_", i), with = F] %>%
+      unlist()
+    # previous trip col time table data
+    prev_trip_column <- stop_times_0_wide[,paste0("Trip_", i - 1), with = F] %>%
+      unlist()
+    # replace cur column with prev column
+    stop_times_0_wide[,paste0("Trip_", i)] <- prev_trip_column
+    # replace cur trip column with prev column location
+    stop_times_0_wide[,paste0("Trip_", i-1)] <- cur_trip_column
+    # save current version of stop times 0 wide to global env
+    stop_times_0_wide <<- stop_times_0_wide
+    # run row check on the two change rows and see if that fixed the issue or not
+    row_checks <- apply(X = stop_times_0_wide[,4:(i+3)], MARGIN = 1, 
+                        FUN = row_check_fun)
+    # increase postion
+    i <- i - 1
+    # break if all values are true, if not repeat with the next position
+    if (all(row_checks %>% unlist(), na.rm = T)) {
+      break
+    }
+  }
+})
+```
+
+Lets do a final check to see if all rows are correct now.
+
+```{r}
+row_checks <- apply(X = stop_times_0_wide[,c(-1,-2,-3)], MARGIN = 1, FUN = row_check_fun, simplify = F)
+
+all(row_checks %>% unlist(), na.rm = T)
+
+```
+
+The code worked and everything appears to be in the correct stop and trip order. Let us now clean up the tables into both a digital format that can easily be read in an html and in a pdf document.
+
+## Step 6: Clean Up Table for Final Version
+
+### Check 3: Manual Time Table Checks
+
+Now that we have a clean table that is easy to read, lets us do one more check by looking at the printed time table created by the BVG () compared to ours. Its best to do some spot checking here to ensure that nothing is critically wrong, but may not be worth the effort to go line by line.
+
+## Step 7: Show Line Route and Stops (Optional)
+
+In this section we will display a single trip from bus line 222 along with all the stops and stop times. To do this we will simply extract geospatial information using the select trip ID and then use Leaflet to display the results.
+
+## Future Plans
+
+While this post only showed the results for a single line, we can convert all this logic into a shiny app that can load in any GTFS feed, filter the feed by given time and date, and then select any of the routes and produce the time table and map for each one. Putting this code into a shiny app will allow users to quickly check the time tables of each route and ensure that they are running as expected. Once the shiny app is complete I will create a new post going over the details of the app and sharing the app itself. In addition, while the code presented here works to fix bus line 222, it has not been checked for edge cases or other lines at this time. So using the same code in the shiny app will also provide a means to check if this solution can work in general for all GTFS feeds, or if there will be special situations where it will fail.
