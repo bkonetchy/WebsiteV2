@@ -4,7 +4,6 @@ author: "Brant Konetchy"
 date: "2023-09-06"
 categories: ["R"]
 tags: ["R", "leaflet", "GTFS"]
-output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -15,9 +14,9 @@ library(leaflet)
 library(data.table)
 
 # load gtfs file
-gtfs <- gtfstools::read_gtfs(path = "../../Datasets/post2_gtfs.zip")
+gtfs <- gtfstools::read_gtfs(path = "../../../../Datasets/post2_gtfs.zip")
 
-NUTS <- st_read(dsn = "../../Datasets/NUTS_RG_01M_2021_4326.shp", 
+NUTS <- st_read(dsn = "../../../../Datasets/NUTS_RG_01M_2021_4326.shp", 
                 layer = "NUTS_RG_01M_2021_4326") %>% 
   filter(LEVL_CODE == 3) %>% 
   filter(CNTR_CODE == "DE") %>% 
