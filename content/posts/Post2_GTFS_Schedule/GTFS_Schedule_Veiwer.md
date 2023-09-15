@@ -60,7 +60,7 @@ tags: ["R", "leaflet", "GTFS", "PDF"]
 <link href="/rmarkdown-libs/reactable/reactable.css" rel="stylesheet" />
 <script src="/rmarkdown-libs/reactable-binding/reactable.js"></script>
 
-# GTFS Time Table Viewer
+# Introduction
 
 This post will go through how to process a GTFS file in order to view the results as a standard time table. We want a result that is similar to standard time tables like those found here [MVV Time Tables](https://www.mvv-muenchen.de/fileadmin/mediapool/03-Plaene_Bahnhoefe/Minifahrplaene/Regionalbus_217.pdf). By processing GTFS results in this manor produces a table that is both easy to read and easy to check for any issues with the GTFS feed. This can be very helpful when trying to debug or check GTFS for accuracy and let non-technical users easily access the time tables within a GTFS file.
 
