@@ -312,7 +312,7 @@ reactable(data = stop_times_0_wide[,c(1:3, trip_order_numb+3), with = F],
 
 If we scroll to the bottom of the table we will find the two stops. They both have time values that should be much earlier in the table. What appears to have occurred is that these two trips may be a bit unique and those two stops only appear a few times, so ended up much lower in the stop order than expected. Our initial assumption was that the stop order for all trips should be about the same, but in this case it does not appear to be. For a solution, the simplest method would be to move the stop order up until it is correct. I have created while loop that will move the stop order up by one location, check if the time order is correct and then either break out of the loop and move onto the next stop, or continue moving the stop order until it is correct.
 
-```{r eval=FALSE}
+```{r }
 # assume that placing these stops at some higger stop order should produce the correct results, will loop through each attempt until all times are correct or fail after going through the complete stop order
 lapply(stops_to_change, FUN = function(stops_change) {
   
@@ -428,7 +428,7 @@ reactable(data = stop_times_0_wide[,c(1:3,8:9), with = F],
 
 Scrolling down to stop 34, we can see the issue. We go from 6:30 to 6:01. Once again the solution appears to move the trip down, check if that fixed the issue, repeat if not or break if it does fix it. We will do this for all trips and this should hopefully correct the issues. Our initial assumption that the trip order could be sorted by the earliest trip fails here. As trip 5 technically starts earlier, but trip 6 is unique and doesn't start its trip until stop 34 causing the times by row to fail.
 
-```{r eval=FALSE}
+```{r }
 # move each trip earlier in the schedule and check if that fixes the issue or not. assumption is that they would have to occur earlier to work.
 lapply(row_checks, FUN = function(col_name) {
   
@@ -593,7 +593,7 @@ dev.off()
 I have embedded the final pdf results below.
 
 ```{=html}
-<iframe src="https://drive.google.com/file/d/123-baOzQFitfQQ_W2sdP3K0EZYG6Vvh3/preview" width="640" height="480" allow="autoplay"></iframe>
+<iframe src="https://drive.google.com/file/d/123-baOzQFitfQQ_W2sdP3K0EZYG6Vvh3/preview" width="800" height="640" allow="autoplay"></iframe>
 ```
 ### Check 3: Manual Time Table Checks
 
