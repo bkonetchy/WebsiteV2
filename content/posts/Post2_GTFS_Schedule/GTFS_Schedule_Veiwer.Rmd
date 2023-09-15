@@ -7,7 +7,7 @@ tags: ["R", "leaflet", "GTFS"]
 ---
 
 ```{r setup, include=FALSE}
-
+#TODO: add links to packages
 library(sf)
 library(dplyr)
 library(leaflet)
@@ -32,7 +32,7 @@ leaflet() %>%
 
 # GTFS Time Table Viewer
 
-This post will go through how to process a GTFS file in order to view the results as a standard time table. We want a result that is similar to standard time tables like those found here: . By processing GTFS results in this manor produces a table that is both easy to read and easy to check for any issues with the GTFS feed. This can be very helpful when trying to debug or check GTFS for accuracy and let non-technical users easily access the time tables within a GTFS file.
+This post will go through how to process a GTFS file in order to view the results as a standard time table. We want a result that is similar to standard time tables like those found here [MVV Time Tables](https://www.mvv-muenchen.de/fileadmin/mediapool/03-Plaene_Bahnhoefe/Minifahrplaene/Regionalbus_217.pdf). By processing GTFS results in this manor produces a table that is both easy to read and easy to check for any issues with the GTFS feed. This can be very helpful when trying to debug or check GTFS for accuracy and let non-technical users easily access the time tables within a GTFS file.
 
 ## Step 1: Read in GTFS feed
 
@@ -69,7 +69,7 @@ leaflet() %>%
 
 ## Step 2: Filter for Exact Date and Berlin Area
 
-When working with GTFS, I found it generally more useful to filter for an exact date rather then just a generic day during the week. The main reason for this is that a route can have minimal or drastic changes depending on planned construction projects. By selecting an exact date we can evaluate the route to see if it is going on the attended "normal" path or if it is being deviated for some reason. This can be especially important if the GTFS feed is being using with routing software like that in the R5R package. The R5R package requires a single day to run the routing analysis, so we want to ensure that that day chose aligns with what we expect travelers to use or we want them to use. This can lead to some odd coding decisions in this case, in which I will switch between two different GTFS processing packages (gtfsools) and (tidytransit). In the first step I used tidytransit to read in the dataset so that I could use the filter by exact day function. This causes the initial load time to be longer as tidytransit generally takes longer to read in GTFS files as gtfstools. However, after we finish the filter by day, we want to convert to the gtftools data type for the rest of the analysis. Luckily, both packages come with converters making it easy to switch back and forth between the two. Generally I would also advise to work with smaller feeds due to the time cost of filtering larger feeds, but when not possible its best to filter out as much data as possible before performing the spatial filter as I do here. In this example the size of the dataset decresses drastically from each filter with a starting size of 2.9 gb and ending at about 104 mb.
+When working with GTFS, I found it generally more useful to filter for an exact date rather then just a generic day during the week. The main reason for this is that a route can have minimal or drastic changes depending on planned construction projects. By selecting an exact date we can evaluate the route to see if it is going on the attended "normal" path or if it is being deviated for some reason. This can be especially important if the GTFS feed is being using with routing software like that in the R5R package. The R5R package requires a single day to run the routing analysis, so we want to ensure that that day chose aligns with what we expect travelers to use or we want them to use. This can lead to some odd coding decisions in this case, in which I will switch between two different GTFS processing packages ([gtfsools](https://ipeagit.github.io/gtfstools/)) and ([tidytransit](https://r-transit.github.io/tidytransit/)). In the first step I used tidytransit to read in the dataset so that I could use the filter by exact day function. This causes the initial load time to be longer as tidytransit generally takes longer to read in GTFS files as gtfstools. However, after we finish the filter by day, we want to convert to the gtftools data type for the rest of the analysis. Luckily, both packages come with converters making it easy to switch back and forth between the two. Generally I would also advise to work with smaller feeds due to the time cost of filtering larger feeds, but when not possible its best to filter out as much data as possible before performing the spatial filter as I do here. In this example the size of the dataset decreases drastically from each filter with a starting size of 2.9 gb and ending at about 104 mb.
 
 ```{r eval=FALSE}
 # filter by date
@@ -86,7 +86,7 @@ gtfs <- gtfstools::filter_by_sf(gtfs = gtfs,
 
 ## Step 3: Extract Route for Processing
 
-Now that we have a GTFS feed filtered for an exact date lets select a single route to use. In this example I will use Bus line 222 that runs between "" and "". In order to get the correct data to create the time table we will have to perform some filters to extract the datasets we need. I will do this step by step.
+Now that we have a GTFS feed filtered for an exact date lets select a single route to use. In this example I will use Bus line 222 that runs between Tegelort and Alt-Lübars. In order to get the correct data to create the time table we will have to perform some filters to extract the datasets we need. I will do this step by step.
 
 ```{r}
 
@@ -201,13 +201,13 @@ stop_times_1 <- merge(stop_times_1,
 # create table for direction 0 by casting to wide format
 stop_times_0_wide <- data.table::dcast.data.table(data = stop_times_0, formula = stop_order+stop_name+stop_id ~ trip_order, value.var = "arrival_time")
 # clean colnames
-colnames(stop_times_0_wide) <- c("Stop Order", "Stop Names","Stop_ID", 
+colnames(stop_times_0_wide) <- c("Stop Order", "Stop Name","Stop_ID", 
                             paste0("Trip_", 1:(length(stop_times_0_wide)-3)))
 
 # create table for direction 0 by casting to wide format
 stop_times_1_wide <- data.table::dcast.data.table(data = stop_times_1, formula = stop_order+stop_name+stop_id ~ trip_order, value.var = "arrival_time")
 # clean colnames
-colnames(stop_times_1_wide) <- c("Stop Order", "Stop Names","Stop_ID", 
+colnames(stop_times_1_wide) <- c("Stop Order", "Stop Name","Stop_ID", 
                             paste0("Trip_", 1:(length(stop_times_1_wide)-3)))
 
 
@@ -239,7 +239,7 @@ Looking at the schedules they do appear to be in the correct order or at least i
 
 ## Step 5: Check Results
 
-Now that we have created the time table lets perform a series of automated checks to see if the results we have produced are correct. We will perform two basic checks that will ensure that the table is in the correct order. The first will check each column and makes sure that the value in the next row is always greater than the previous value, as we should always be increasing in time when going to the next stop. The second check will look at each row and perform the same test but looking at each trip (column) should start at a later time as the previous trip.
+Now that we have created the time table lets perform a series of automated checks to see if the results we have produced are correct. We will perform two basic checks that will ensure that the table is in the correct order. The first will check each column and makes sure that the value in the next row is always greater than the previous value, as we should always be increasing in time when going to the next stop. The second check will look at each row and perform the same test but looking at each trip (column) should start at a later time as the previous trip. From here on out I will only focus on the time table in direction 0, as the process would be the same for both directions.
 
 ### Check 1: Stop Order
 
@@ -312,7 +312,7 @@ reactable(data = stop_times_0_wide[,c(1:3, trip_order_numb+3), with = F],
 
 If we scroll to the bottom of the table we will find the two stops. They both have time values that should be much earlier in the table. What appears to have occurred is that these two trips may be a bit unique and those two stops only appear a few times, so ended up much lower in the stop order than expected. Our initial assumption was that the stop order for all trips should be about the same, but in this case it does not appear to be. For a solution, the simplest method would be to move the stop order up until it is correct. I have created while loop that will move the stop order up by one location, check if the time order is correct and then either break out of the loop and move onto the next stop, or continue moving the stop order until it is correct.
 
-```{r}
+```{r include=FALSE}
 # assume that placing these stops at some higger stop order should produce the correct results, will loop through each attempt until all times are correct or fail after going through the complete stop order
 lapply(stops_to_change, FUN = function(stops_change) {
   
@@ -429,7 +429,7 @@ reactable(data = stop_times_0_wide[,c(1:3,8:9), with = F],
 
 Scrolling down to stop 34, we can see the issue. We go from 6:30 to 6:01. Once again the solution appears to move the trip down, check if that fixed the issue, repeat if not or break if it does fix it. We will do this for all trips and this should hopefully correct the issues. Our initial assumption that the trip order could be sorted by the earliest trip fails here. As trip 5 technically starts earlier, but trip 6 is unique and doesn't start its trip until stop 34 causing the times by row to fail.
 
-```{r}
+```{r include=FALSE}
 # move each trip earlier in the schedule and check if that fixes the issue or not. assumption is that they would have to occur earlier to work.
 lapply(row_checks, FUN = function(col_name) {
   
@@ -478,14 +478,127 @@ The code worked and everything appears to be in the correct stop and trip order.
 
 ## Step 6: Clean Up Table for Final Version
 
+We are going to clean up a bit more and then produce two versions.
+
+-   webpage friendly version that is easy to read and scroll through.
+
+-   print friendly version that can saved as a pdf.
+
+### Web version
+
+For the web version we will use the reactable package and and a few customizations.
+
+```{r}
+# clean up trip column  names
+colnames(stop_times_0_wide)[4:length(stop_times_0_wide)] <- gsub(pattern = "_",
+                                                                 replacement = " ",
+                                                                 x = colnames(stop_times_0_wide)[4:length(stop_times_0_wide)])
+# remove the stop id and stop order values
+reactable(data = stop_times_0_wide[,c(-1,-3), with = F], 
+          pagination = F, 
+          height = 800,
+          defaultColDef = colDef(
+            align = "center"
+          ),
+          columns = list(
+            `Stop Name` = colDef(align = 'left', 
+                                  width = 250)
+          ),
+          theme = reactableTheme(color = "black")) %>%
+  add_title("Bus Line 222 Time Table") %>%
+  add_subtitle("Direction 0")
+```
+
+### PDF version
+
+For the pdf version we will use [gridExtra](https://cran.r-project.org/web/packages/gridExtra/gridExtra.pdf) and with some upfront calculations to produce an automated pdf table. For the final size I had to experiment and find how many rows and columns would fit within my selected page size of 11x8.5 inches. Because the size of the table is large, we cannot show all stops on a single page. So we will produce a series of tables that show the first set of stops and all trips, followed by the rest of the stops and all trips.
+
+```{r}
+library(gridExtra)
+library(grid)
+
+page_width <- 11
+page_height <- 8.5
+page_margin <- 0.5
+
+# create a loop to determine how many columns (trips) can be selected for each page
+table_width <- 0
+trips_per_page <- 1
+while (page_width - page_margin > table_width) {
+  
+  # calculate page width starting with one column at a time
+  table_width <- tableGrob(d = stop_times_0_wide[,c(-1,-3)][,1:trips_per_page], 
+                          rows = NULL, 
+                          theme = ttheme_default(base_size = 8))
+  
+  table_width <- grid::convertWidth(x = sum(table_width$widths), 
+                                   unitTo = "inches", 
+                                   valueOnly = T)
+  
+  trips_per_page <- trips_per_page + 1
+  table_width <<- table_width
+  
+}
+# subtract 1 from trips per page so we dont exceed the page size
+trips_per_page <- trips_per_page - 1
+
+# calculate number of stops per page
+table_height <- 0
+stops_per_page <- 1
+while (page_height - page_margin > table_height) {
+  
+  # calculate page width starting with one column at a time
+  table_height <- tableGrob(d = stop_times_0_wide[1:stops_per_page,c(-1,-3)], 
+                          rows = NULL, 
+                          theme = ttheme_default(base_size = 8))
+  
+  table_height <- grid::convertWidth(x = sum(table_height$heights), 
+                                   unitTo = "inches", 
+                                   valueOnly = T)
+  
+  stops_per_page <- stops_per_page + 1
+  table_height <<- table_height
+  
+}
+# subtract 1 from stops per page so we dont exceed the page size
+stops_per_page <- stops_per_page - 1
+
+# calculate the seq of trips per page
+trips_seq_start <- seq(1,length(stop_times_0_wide)-2,trips_per_page)
+trips_seq_end <- c(trips_seq_start[-1] - 1, length(stop_times_0_wide)-2)
+
+# calculate the seq of stops per page
+stops_seq_start <- seq(1,nrow(stop_times_0_wide),stops_per_page)
+stops_seq_end <- c(stops_seq_start[-1] - 1, nrow(stop_times_0_wide))
+
+# create two loops, outer loop for stops and and inner loop for trips.
+pdf("table.pdf", width = page_width, height = page_height)
+# outer loop for stops
+mapply(start_stops = stops_seq_start, end_stops = stops_seq_end, 
+       FUN = function(start_stops, end_stops) {
+         # inner loop for trips
+         mapply(trips_start = trips_seq_start, trips_end = trips_seq_end, 
+                FUN = function(trips_start, trips_end) {
+                  grid.arrange(
+                    tableGrob(d = stop_times_0_wide[start_stops:end_stops,c(-1,-3)][,c(trips_start:trips_end), with = F], 
+                              rows = NULL, 
+                              theme = ttheme_default(base_size = 8))
+                  )
+                })
+         
+})
+dev.off()
+
+```
+
+I have embedded the final pdf results below.
+
+\<iframe src="[https://drive.google.com/file/d/123-baOzQFitfQQ_W2sdP3K0EZYG6Vvh3/preview"](https://drive.google.com/file/d/123-baOzQFitfQQ_W2sdP3K0EZYG6Vvh3/preview%22) width="640" height="480" allow="autoplay"\>\</iframe\>
+
 ### Check 3: Manual Time Table Checks
 
-Now that we have a clean table that is easy to read, lets us do one more check by looking at the printed time table created by the BVG () compared to ours. Its best to do some spot checking here to ensure that nothing is critically wrong, but may not be worth the effort to go line by line.
-
-## Step 7: Show Line Route and Stops (Optional)
-
-In this section we will display a single trip from bus line 222 along with all the stops and stop times. To do this we will simply extract geospatial information using the select trip ID and then use Leaflet to display the results.
+Now that we have a clean table that is easy to read, lets us do one more check by looking at the printed time table created by the BVG ([PDF Time Table](https://www.bvg.de/dam/jcr:e3f2fda7-33c6-4a61-81e1-7a2cbf5b4d5e/222_2022-12-11.pdf)) compared to ours. Its best to do some spot checking here to ensure that nothing is critically wrong, but may not be worth the effort to go line by line.
 
 ## Future Plans
 
-While this post only showed the results for a single line, we can convert all this logic into a shiny app that can load in any GTFS feed, filter the feed by given time and date, and then select any of the routes and produce the time table and map for each one. Putting this code into a shiny app will allow users to quickly check the time tables of each route and ensure that they are running as expected. Once the shiny app is complete I will create a new post going over the details of the app and sharing the app itself. In addition, while the code presented here works to fix bus line 222, it has not been checked for edge cases or other lines at this time. So using the same code in the shiny app will also provide a means to check if this solution can work in general for all GTFS feeds, or if there will be special situations where it will fail.
+While this post only showed the results for a single line, we can convert all this logic into a shiny app that can load in any GTFS feed, filter the feed by given time and date, and then select any of the routes and produce the time table and map for each one. Putting this code into a shiny app will allow users to quickly check the time tables of each route and ensure that they are running as expected. Once the shiny app is complete I will create a new post going over the details of the app and sharing the app itself. In addition, while the code presented here works to fix bus line 222, it has not been checked for edge cases or other lines at this time. So using the same code in the shiny app will also provide a means to check if this solution can work in general for all GTFS feeds, or if there will be special situations when it will fail.
