@@ -1,5 +1,5 @@
 ---
-title: "Grid Refinement Part 1"
+title: "Grid Refinement"
 author: "Brant Konetchy"
 date: '2020-11-26'
 categories: ["R"]
